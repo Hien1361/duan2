@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>So Sánh Thuật Toán Robot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Consolas&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #1e272e 0%, #485460 100%);
+            --card-bg: #2f3640;
+            --text-color: #f5f6fa;
+            --accent-color: #00d2d3;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+            display: flex;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .panel-left { flex: 2; min-width: 350px; }
+        .panel-right { flex: 1; min-width: 300px; display: flex; flex-direction: column; }
+
+        h1 { margin: 0 0 20px 0; color: var(--accent-color); font-size: 24px; border-bottom: 2px solid #57606f; padding-bottom: 10px; }
+
+        .controls {
+            background: #353b48;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        label { font-size: 12px; color: #ced6e0; }
+        
+        select, input, button {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #57606f;
+            background: #2f3640;
+            color: white;
+            font-family: inherit;
+        }
+
+        button { cursor: pointer; font-weight: bold; transition: 0.2s; border: none;}
+        .btn-new { background: #ff9f43; color: #2d3436; }
+        .btn-run { background: var(--accent-color); color: #2d3436; }
+        .btn-run:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 210, 211, 0.3); }
+
+        #grid-wrapper {
+            background: #dcdde1;
+            padding: 15px;
+            border-radius: 15px;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        #grid {
+            display: grid;
+            gap: 6px;
+        }
+
+        .cell {
+            width: 55px;
+            height: 55px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            font-weight: bold;
+            color: #2f3640;
+            transition: 0.3s;
+        }
+
+        .cell input {
+            width: 100%; height: 100%; text-align: center; border: none;
+            background: transparent; color: inherit; font-size: 16px; font-weight: bold;
+        }
+
+        .cell.wall { background: #718093; opacity: 0.5; }
+        .cell.wall input { color: #dcdde1; }
+
+        .cell.robot {
+            background: #ff6b6b !important;
+            color: white !important;
+            transform: scale(1.15);
+            z-index: 10;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+        }
+        
+        .cell.visited { background: var(--accent-color); color: #2f3640; }
+        
+        .step-badge {
+            position: absolute; top: -5px; right: -5px;
+            background: #feca57; color: #222;
+            width: 20px; height: 20px; border-radius: 50%;
+            font-size: 10px; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .terminal {
+            background: #1e272e;
+            border-radius: 12px;
+            padding: 15px;
+            flex-grow: 1;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            overflow-y: auto;
+            border: 1px solid #57606f;
+            max-height: 500px;
+        }
+        
+        .log-line { margin-bottom: 4px; border-bottom: 1px solid #2f3640; padding-bottom: 2px; }
+        .log-info { color: #00d2d3; }
+        .log-warn { color: #ff9f43; }
+        .log-success { color: #1dd1a1; font-weight: bold; border-top: 1px dashed #57606f; margin-top: 10px; padding-top: 5px;}
+
+        .algo-info {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            border-left: 4px solid var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel-left">
+        <h1>🤖 Robot Algo Lab</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Thuật Toán</label>
+                <select id="algo-select" onchange="updateAlgoInfo()">
+                    <option value="greedy">1. Greedy (Tham Ăn)</option>
+                    <option value="lookahead">2. Look-ahead (Nhìn xa)</option>
+                    <option value="dfs">3. DFS (Vét cạn - Tối ưu)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Tốc độ (ms)</label>
+                <select id="speed">
+                    <option value="800">Chậm</option>
+                    <option value="300" selected>Vừa</option>
+                    <option value="50">Siêu Nhanh</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Tác vụ</label>
+                <button class="btn-new" onclick="createGrid()">Tạo Map Mới</button>
+            </div>
+            <div class="control-group">
+                <label>Chạy</label>
+                <button class="btn-run" onclick="runSimulation()">▶ BẮT ĐẦU</button>
+            </div>
+        </div>
+
+        <div id="algo-desc" class="algo-info">
+            Đang chọn: <b>Greedy</b> - Robot chỉ nhìn 1 bước và chọn ô lớn nhất. Dễ bị bẫy cục bộ.
+        </div>
+
+        <div id="grid-wrapper">
+            <div id="grid"></div>
+        </div>
+    </div>
+
+    <div class="panel-right">
+        <h1>💻 Nhật Ký (Logs)</h1>
+        <div class="terminal" id="console">
+            <div class="log-line">System ready...</div>
+            <div class="log-line">Waiting for map generation...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const defaultData = [
+        [2, 1, 14, 12, 17],
+        [3, 16, -1, 91, 23],
+        [4, 56, 87, -1, 65],
+        [27, 43, 90, 100, 101],
+        [76, 54, -1, 99, 66],
+        [178, 154, 150, 200, 543]
+    ];
+
+    let R = 6, C = 5;
+    let isRunning = false;
+
+    window.onload = () => { createGrid(true); updateAlgoInfo(); };
+
+    function log(msg, type='') {
+        const consoleDiv = document.getElementById('console');
+        let colorClass = type === 'success' ? 'log-success' : (type === 'warn' ? 'log-warn' : 'log-info');
+        consoleDiv.innerHTML += `<div class="log-line ${colorClass}">${msg}</div>`;
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    }
+
+    function updateAlgoInfo() {
+        const algo = document.getElementById('algo-select').value;
+        const desc = document.getElementById('algo-desc');
+        if(algo === 'greedy') desc.innerHTML = "<b>Greedy (Tham Ăn):</b> Chọn ô lân cận lớn nhất > 0. Đây là yêu cầu của đề bài.";
+        if(algo === 'lookahead') desc.innerHTML = "<b>Look-ahead (Nhìn xa):</b> Tính tổng (Ô hiện tại + Max của ô tiếp theo). Tránh đi vào ngõ cụt nhỏ.";
+        if(algo === 'dfs') desc.innerHTML = "<b>DFS (Vét Cạn):</b> Thử TẤT CẢ các đường đi có thể để tìm ra đường có tổng điểm cao nhất (Global Optima).";
+    }
+
+    function createGrid(useDefault=false) {
+        const grid = document.getElementById('grid');
+        grid.style.gridTemplateColumns = `repeat(${C}, 55px)`;
+        grid.innerHTML = '';
+        document.getElementById('console').innerHTML = '<div class="log-line">--- MAP RESET ---</div>';
+
+        for(let i=0; i<R; i++) {
+            for(let j=0; j<C; j++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = `c-${i}-${j}`;
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                if(useDefault && i<defaultData.length) input.value = defaultData[i][j];
+                else input.value = Math.floor(Math.random() * 100) - 10;
+
+                input.addEventListener('input', () => checkWall(cell, input.value));
+                checkWall(cell, input.value);
+
+                cell.appendChild(input);
+                grid.appendChild(cell);
+            }
+        }
+    }
+
+    function checkWall(cell, val) {
+        if(val <= 0) cell.classList.add('wall');
+        else cell.classList.remove('wall');
+    }
+
+    function getMatrix() {
+        let mat = [];
+        for(let i=0; i<R; i++) {
+            let row = [];
+            for(let j=0; j<C; j++) {
+                let val = parseInt(document.getElementById(`c-${i}-${j}`).children[0].value);
+                row.push(val);
+            }
+            mat.push(row);
+        }
+        return mat;
+    }
+
+    async function runSimulation() {
+        if(isRunning) return;
+        isRunning = true;
+        const algo = document.getElementById('algo-select').value;
+        const delayTime = parseInt(document.getElementById('speed').value);
+        const mat = getMatrix();
+
+        document.querySelectorAll('.cell').forEach(c => {
+            c.classList.remove('visited', 'robot');
+            const badge = c.querySelector('.step-badge');
+            if(badge) badge.remove();
+        });
+
+        log(`>>> STARTED: ${algo.toUpperCase()}`, 'warn');
+
+        if(algo === 'dfs') {
+            await runDFS_Visual(mat, delayTime);
+        } else {
+            await runStepByStep(mat, algo, delayTime);
+        }
+        
+        isRunning = false;
+    }
+
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+    async function runStepByStep(mat, algo, delay) {
+        let visited = Array(R).fill().map(() => Array(C).fill(false));
+        let r = 0, c = 0;
+        let score = 0;
+        let step = 1;
+
+        if(mat[r][c] <= 0) { log("Start pos invalid!"); return; }
+
+        while(true) {
+            visited[r][c] = true;
+            score += mat[r][c];
+
+            const cell = document.getElementById(`c-${r}-${c}`);
+            cell.classList.add('robot');
+            cell.innerHTML += `<div class="step-badge">${step}</div>`;
+            log(`Step ${step}: Đến [${r},${c}] (+${mat[r][c]})`);
+            
+            await sleep(delay);
+            
+            cell.classList.remove('robot');
+            cell.classList.add('visited');
+
+            let bestR = -1, bestC = -1;
+            let bestVal = -Infinity;
+
+            const dr = [-1, 1, 0, 0];
+            const dc = [0, 0, -1, 1];
+
+            for(let i=0; i<4; i++) {
+                let nr = r + dr[i];
+                let nc = c + dc[i];
+
+                if(nr>=0 && nr<R && nc>=0 && nc<C && !visited[nr][nc] && mat[nr][nc]>0) {
+                    let currentVal = mat[nr][nc];
+                    let heuristicVal = currentVal;
+
+                    if(algo === 'lookahead') {
+                        let maxNext = 0;
+                        for(let k=0; k<4; k++) {
+                            let nnr = nr + dr[k];
+                            let nnc = nc + dc[k];
+                            if(nnr>=0 && nnr<R && nnc>=0 && nnc<C && !visited[nnr][nnc] && mat[nnr][nnc]>0) {
+                                if(mat[nnr][nnc] > maxNext) maxNext = mat[nnr][nnc];
+                            }
+                        }
+                        heuristicVal += maxNext;
+                    }
+
+                    if(heuristicVal > bestVal) {
+                        bestVal = heuristicVal;
+                        bestR = nr;
+                        bestC = nc;
+                    }
+                }
+            }
+
+            if(bestR !== -1) {
+                r = bestR;
+                c = bestC;
+                step++;
+            } else {
+                log(`🏁 FINISHED! Total Score: ${score}`, 'success');
+                break;
+            }
+        }
+    }
+
+    async function runDFS_Visual(mat, delay) {
+        log("Calculating best path (DFS)... please wait...");
+        
+        let visited = Array(R).fill().map(() => Array(C).fill(false));
+        let maxScoreGlobal = -1;
+        let bestPathGlobal = [];
+
+        function dfs(r, c, currentScore, path) {
+            if(currentScore > maxScoreGlobal) {
+                maxScoreGlobal = currentScore;
+                bestPathGlobal = [...path];
+            }
+
+            const dr = [-1, 1, 0, 0];
+            const dc = [0, 0, -1, 1];
+            
+            let canMove = false;
+            for(let i=0; i<4; i++) {
+                let nr = r + dr[i];
+                let nc = c + dc[i];
+                
+                if(nr>=0 && nr<R && nc>=0 && nc<C && !visited[nr][nc] && mat[nr][nc]>0) {
+                    canMove = true;
+                    visited[nr][nc] = true;
+                    path.push({r: nr, c: nc, val: mat[nr][nc]});
+                    
+                    dfs(nr, nc, currentScore + mat[nr][nc], path);
+                    
+                    path.pop();
+                    visited[nr][nc] = false;
+                }
+            }
+        }
+
+        if(mat[0][0] > 0) {
+            visited[0][0] = true;
+            dfs(0, 0, mat[0][0], [{r:0, c:0, val: mat[0][0]}]);
+        }
+
+        log(`Calculation done! Best Score possible: ${maxScoreGlobal}`, 'warn');
+        log(`Replaying best path...`);
+
+        for(let i=0; i<bestPathGlobal.length; i++) {
+            let node = bestPathGlobal[i];
+            const cell = document.getElementById(`c-${node.r}-${node.c}`);
+            
+            cell.classList.add('robot');
+            cell.innerHTML += `<div class="step-badge">${i+1}</div>`;
+            log(`Step ${i+1}: [${node.r},${node.c}]`);
+            
+            await sleep(delay);
+            
+            cell.classList.remove('robot');
+            cell.classList.add('visited');
+        }
+        log(`🏁 DFS FINISHED! Max Score: ${maxScoreGlobal}`, 'success');
+    }
+
+</script>
+</body>
+</html>
